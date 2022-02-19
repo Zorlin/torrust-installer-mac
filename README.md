@@ -1,12 +1,12 @@
 # torrust-installer
-This is an Ansible-based installer for [Torrust](https://github.com/torrust/torrust). You can use it to set up a Torrust private tracker with minimal effort.
+This is an Ansible-based installer for [Torrust](https://github.com/torrust/torrust), hacked to run on macOS for development purposes.
 
 ## Requirements
 
 You will need the following:
 
-* A computer with Ansible installed (hint: sudo apt install ansible or follow [these directions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-specific-operating-systems)).
-* A server you wish to install Torrust on, with a domain name pointed at the server via DNS.
+* A computer with Ansible installed (hint: brew install ansible or follow [these directions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-specific-operating-systems)).
+* A Mac you wish to develop on (hint: it's probably the same computer)
 
 ## Getting started
 
@@ -29,27 +29,27 @@ Copy your SSH key to your Torrust server (replace example.com with your server's
 ssh-copy-id example.com
 ```
 
-Add your Torrust server to the **inventory** file (replace example.com with your server's address/domain name).
+Add your Torrust server to the **inventory** file.
 
 ```
-echo example.com >> inventory/hosts
+echo localhost >> inventory/hosts
 ```
 
-Create a "host variables folder" where you will set keys, passwords, URLs and other settings (again, replace example.com with your server's address/domain name).
+Create a "host variables folder" where you will set keys, passwords, URLs and other settings.
 
 ```
-mkdir inventory/host_vars/example.com
+mkdir inventory/host_vars/localhost
 ```
 
-Create a variable file in that folder with all the basic configuration needed to start your tracker (paste this whole block, then open inventory/host_vars/example.com/vars.yml in an editor and change it as needed)
+Create a variable file in that folder with all the basic configuration needed to start your tracker (paste this whole block, then open inventory/host_vars/localhost/vars.yml in an editor and change it as needed)
 
 ```
-cat > inventory/host_vars/example.com/vars.yml << EOF
+cat > inventory/host_vars/localhost/vars.yml << EOF
 ---
-# Variables used for example.com
+# Variables used for localhost
 
 # Set URLs for the site and tracker
-your_domain: "example.com"
+your_domain: "localhost"
 # Leave this setting as-is to make your tracker use the same URL as your site.
 tracker_url: "{{ your_domain }}"
 
@@ -78,9 +78,9 @@ You should see a message like this once Ansible finishes, indicating a successfu
 
 ```
 TASK [Success!] **********************************************************************************************
-ok: [example.com] => {
+ok: [localhost] => {
     "msg": [
-        "If you're reading this, Torrust has been successfully deployed to site example.com.",
+        "If you're reading this, Torrust has been successfully deployed to site localhost.",
         "Let us know if it worked, and feel free to reach out if you need help. Enjoy!"
     ]
 }
