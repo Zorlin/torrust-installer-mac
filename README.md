@@ -17,6 +17,12 @@ git clone https://github.com/zorlin/torrust-installer
 cd torrust-installer
 ```
 
+Install required Ansible Collections
+
+```
+ansible-galaxy install -r collections/requirements.yml
+```
+
 Generate an SSH key if you don't already have one.
 
 ```
