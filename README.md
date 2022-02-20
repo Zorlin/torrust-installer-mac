@@ -1,12 +1,15 @@
 # torrust-installer
 This is an Ansible-based installer for [Torrust](https://github.com/torrust/torrust), hacked to run on macOS for development purposes.
 
+Tested on macOS 12.0.1, 2020 M1 MacBook Air.
+
 ## Requirements
 
 You will need the following:
 
 * A computer with Ansible installed (hint: brew install ansible or follow [these directions](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-specific-operating-systems)).
 * A Mac you wish to develop on (hint: it's probably the same computer)
+  The folder /opt/torrust created and writable on that Mac (hint: owned by your user, in other words)
 
 ## Getting started
 
@@ -90,6 +93,12 @@ ok: [localhost] => {
         "Let us know if it worked, and feel free to reach out if you need help. Enjoy!"
     ]
 }
+```
+
+Run the backend and tracker in a tmux session.
+```
+tmux new -s torrust-tracker -d 'cd /opt/torrust/torrust-tracker ; ./target/release/torrust-tracker'
+tmux new -s torrust-index -d 'cd /opt/torrust/torrust/backend ; ./target/release/torrust'
 ```
 
 You should now have a working tracker. Login and have a look around!

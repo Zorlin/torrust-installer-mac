@@ -1,38 +1,29 @@
 ---
 - name: Install Torrust
   hosts: torrust
-  become: true
+  become: no
 
   tasks:
-    - name: Update apt cache if older than a day
-      apt:
-        update_cache: yes
-        cache_valid_time: 86400
-
     - name: Install some pre-requisites
-      package:
+      community.general.homebrew:
         name:
           - git
           - curl
-          - build-essential
           - tmux
           - pkg-config
-          - libssl-dev
-          - libsqlite3-dev
+          - openssl
+          - sqlite3
 
     # shoutout to https://dentrassi.de/2020/06/17/headless-installation-of-cargo-and-rust/ for the silent install method
     - name: Install Rust
       shell:
         cmd: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        creates: /root/.cargo/bin/rustc
+        creates: ~/.cargo/bin/rustc
 
     - name: Create Torrust folder in /opt/
       file:
         path: /opt/torrust/
         state: directory
-        owner: root
-        group: root
-        mode: 0755
 
     # Torrust Tracker
     - name: Check out torrust-tracker
@@ -57,32 +48,19 @@
       lineinfile:
         path: /opt/torrust/torrust-tracker/config.toml
         regexp: 'admin = "MyAccessToken"'
-        line: 'admin = "{{ http_api_access_token }}"'
-
-    - name: Install torrust-tracker systemd service
-      template:
-        src: torrust-tracker.service.j2
-        dest: /etc/systemd/system/torrust-tracker.service
-        owner: root
-        group: root
-        mode: 0755
-
-    - name: Start torrust-tracker systemd service
-      systemd:
-        name: torrust-tracker
-        state: started
+        line: 'token = "{{ http_api_access_token }}"'
 
     # Torrust Index
-    - name: Setup Node.js 16.x apt repositories
-      shell:
-        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-        creates: /etc/apt/sources.list.d/nodesource.list
-
     - name: Install packages needed for torrust-index
-      package:
+      community.general.homebrew:
         name:
-          - nodejs
+          - node@16
           - nginx
+
+    - name: Add node.js to path
+      lineinfile:
+        path: ~/.zshrc
+        line: 'export PATH="/opt/homebrew/opt/node@16/bin:$PATH"'
 
     - name: Check out torrust
       git:
@@ -136,108 +114,29 @@
         regexp: '^secret_key = '
         line: 'secret_key = "{{ secret_key }}"'
 
-    - name: Install torrust-backend systemd service
-      template:
-        src: torrust-backend.service.j2
-        dest: /etc/systemd/system/torrust-backend.service
-        owner: root
-        group: root
-        mode: 0755
-
-    - name: Start torrust-backend systemd service
-      systemd:
-        name: torrust-backend
-        state: started
-
     # Torrust frontend
     - name: Configure torrust frontend
       copy:
         dest: "/opt/torrust/torrust/frontend/.env"
-        content: "VITE_API_BASE_URL=https://{{ your_domain }}/api"
+        content: "VITE_API_BASE_URL=http://{{ your_domain }}/api"
 
     - name: Install npm dependencies
-      command:
-        cmd: npm i
+      shell:
+        cmd: export PATH="/opt/homebrew/opt/node@16/bin:$PATH" && npm i
         chdir: /opt/torrust/torrust/frontend/
         creates: /opt/torrust/torrust/frontend/dist/index.html
 
     - name: Run npm build
-      command:
-        cmd: npm run build
+      shell:
+        cmd: export PATH="/opt/homebrew/opt/node@16/bin:$PATH" && npm run build
         chdir: /opt/torrust/torrust/frontend/
         creates: /opt/torrust/torrust/frontend/dist/index.html
 
     # Configure nginx
-    - name: Check if we think we have a valid TLS/SSL certificate
-      stat:
-        path: /etc/letsencrypt/live/{{ your_domain }}/fullchain.pem
-      register: ssl_enabled
-
     - name: Copy nginx configuration file
       template:
         src: torrust.conf.j2
-        dest: /etc/nginx/sites-available/torrust.conf
-        owner: root
-        group: root
-        mode: 0644
-
-    - name: Enable nginx configuration file
-      file:
-        src: /etc/nginx/sites-available/torrust.conf
-        dest: /etc/nginx/sites-enabled/torrust.conf
-        state: link
-        owner: root
-        group: root
-        mode: 0644
-
-    - name: Reload nginx
-      systemd:
-        name: nginx
-        state: reloaded
-
-    # Install certbot
-    - name: Install snapd
-      package:
-        name: snapd
-        state: present
-
-    - name: Install certbot
-      command:
-        cmd: snap install --classic certbot
-        creates: /snap/bin/certbot
-
-    - name: Link certbot executable into /usr/bin
-      file:
-        src: /snap/bin/certbot
-        dest: /usr/bin/certbot
-        state: link
-        owner: root
-        group: root
-        mode: 0755
-
-    - name: Run certbot to request TLS/SSL certificates for our site
-      command:
-        cmd: certbot certonly --nginx --agree-tos -n -m {{ certbot_email }} -d {{ your_domain }}
-        creates: /etc/letsencrypt/live/{{ your_domain }}/fullchain.pem
-
-    # Configure nginx again to pick up TLS/SSL configuration changes.
-    - name: Check if we think we have a valid TLS/SSL certificate (again)
-      stat:
-        path: /etc/letsencrypt/live/{{ your_domain }}/fullchain.pem
-      register: ssl_enabled
-
-    - name: Copy nginx configuration file
-      template:
-        src: torrust.conf.j2
-        dest: /etc/nginx/sites-available/torrust.conf
-        owner: root
-        group: root
-        mode: 0644
-
-    - name: Reload nginx
-      systemd:
-        name: nginx
-        state: reloaded
+        dest: /opt/homebrew/etc/nginx/servers/torrust.conf
 
     - name: Success!
       debug:
